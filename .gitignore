@@ -1,3 +1,8 @@
+# Cowan's programs files
+*.rcn*
+*.rcn2*
+*.rcg*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
