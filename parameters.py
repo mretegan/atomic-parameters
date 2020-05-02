@@ -240,7 +240,7 @@ class Cowan(object):
             except FileNotFoundError:
                 pass
 
-    def get_parameters(self, remove=True, debug=False):  # noqa
+    def get_parameters(self, debug=False):  # noqa
         self.rcn()
         self.rcn2()
         self.rcg()
@@ -308,7 +308,7 @@ class Cowan(object):
             parameters[name] = value
 
         # Remove files generated during the calculations.
-        if remove and not debug:
+        if not debug:
             self.remove_calculation_files()
 
         return energy, parameters
@@ -319,7 +319,6 @@ def main():
     parser.add_argument("-e", "--element", default="Fe")
     parser.add_argument("-c", "--configuration", default="3d5")
     parser.add_argument("-l", "--loglevel", default="debug")
-    parser.add_argument("-r", "--remove", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
 
     args = parser.parse_args()
@@ -330,7 +329,7 @@ def main():
     conf = Configuration(args.configuration)
 
     cowan = Cowan(element, conf)
-    conf.energy, conf.atomic_parameters = cowan.get_parameters(args.remove, args.debug)
+    conf.energy, conf.atomic_parameters = cowan.get_parameters(args.debug)
 
     logging.info("%2s %-8s", element.symbol, conf)
     logging.info("E = %-.4f eV", conf.energy)
