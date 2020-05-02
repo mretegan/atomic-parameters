@@ -19,7 +19,7 @@ class TestConfiguration(unittest.TestCase):
         self.conf = Configuration("1s1,3d6")
         self.element = Element("Fe")
         self.cowan = Cowan(self.element, self.conf)
-        self.conf.energy, *self.conf.atomic_parameters = self.cowan.get_parameters()
+        self.conf.energy, self.conf.atomic_parameters = self.cowan.get_parameters()
 
     def test_subshells(self):
         self.assertCountEqual(self.conf.subshells, ["1s", "3d"])

@@ -75,6 +75,8 @@ class Configuration(object):  # noqa
 
     def __init__(self, name):
         self.name = name
+        self.energy = None
+        self.atomic_parameters = None
 
     @property
     def name(self):
@@ -122,10 +124,6 @@ class Configuration(object):  # noqa
 
         self._name = value
 
-    @property
-    def is_excited(self):
-        return len(self.shells) == 2
-
     @classmethod
     def from_subshells_and_occupancies(cls, subshells, occupancies):
         name = ",".join(
@@ -133,197 +131,6 @@ class Configuration(object):  # noqa
             for subshell, occupancy in zip(subshells, occupancies)
         )
         return cls(name)
-
-    @property
-    def energy(self):
-        try:
-            return self._energy
-        except AttributeError:
-            return None
-
-    @energy.setter
-    def energy(self, value):
-        self._energy = value
-
-    @property
-    def atomic_parameters(self):
-        try:
-            return self._atomic_parameters
-        except AttributeError:
-            return None
-
-    @atomic_parameters.setter
-    def atomic_parameters(self, values):
-        """Map the values onto the labels."""
-        MAPPINGS = {
-            "d": [
-                (
-                    "U({0:d}d,{0:d}d)",
-                    "F2({0:d}d,{0:d}d)",
-                    "F4({0:d}d,{0:d}d)",
-                    "ζ({0:d}d)",
-                ),
-                {
-                    (0, ): (-1, -1, -1, -1),
-                    (1, ): (-1, -1, -1, 0),
-                    (-1, ): (-1, 0, 1, 2),
-                },
-            ],
-            "s,d": [
-                (
-                    "U({1:d}d,{1:d}d)",
-                    "F2({1:d}d,{1:d}d)",
-                    "F4({1:d}d,{1:d}d)",
-                    "U({0:d}s,{1:d}d)",
-                    "G2({0:d}s,{1:d}d)",
-                    "ζ({1:d}d)",
-                ),
-                (
-                    {
-                        (0, 0): (-1, -1, -1, -1, -1, -1),
-                        (0, 1): (-1, -1, -1, -1, -1, 0),
-                        (0, -1): (-1, 0, 1, -1, -1, 2),
-
-                        (-1, 0): (-1, -1, -1, -1, -1, -1),
-                        (-1, 1): (-1, -1, -1, -1, 1, 0),
-                        (-1, -1): (-1, 0, 1, -1, 3, 2),
-                    }
-                )
-            ],
-            "p,d": [
-                (
-                    "U({1:d}d,{1:d}d)",
-                    "F2({1:d}d,{1:d}d)",
-                    "F4({1:d}d,{1:d}d)",
-                    "U({0:d}p,{1:d}d)",
-                    "F2({0:d}p,{1:d}d)",
-                    "G1({0:d}p,{1:d}d)",
-                    "G3({0:d}p,{1:d}d)",
-                    "ζ({1:d}d)",
-                    "ζ({0:d}p)",
-                ),
-                {
-                    (0, 0): (-1, -1, -1, -1, -1, -1, -1, -1, -1),
-                    (0, 1): (-1, -1, -1, -1, -1, -1, -1, 0, -1),
-                    (0, -1): (-1, 0, 1, -1, -1, -1, -1, 2, -1),
-
-                    (1, 0): (-1, -1, -1, -1, -1, -1, -1, -1, 0),
-                    (1, 1): (-1, -1, -1, -1, 2, 3, 4, 1, 0),
-                    (1, -1): (-1, 0, 1, -1, 4, 5, 6, 3, 2),
-
-                    # The F2 parameter of the p-electrons is ignored.
-                    (-1, 0): (-1, -1, -1, -1, -1, -1, -1, -1, 1),
-                    (-1, 1): (-1, -1, -1, -1, 3, 4, 5, 2, 1),
-                    (-1, -1): (-1, 1, 2, -1, 5, 6, 7, 4, 3),
-                },
-            ],
-            "f": [
-                (
-                    "U({0:d}f,{0:d}f)",
-                    "F2({0:d}f,{0:d}f)",
-                    "F4({0:d}f,{0:d}f)",
-                    "F6({0:d}f,{0:d}f)",
-                    "U({0:d}s,{1:d}f)",
-                    "ζ({0:d}f)",
-                ),
-                {
-                    (0, ): (-1, -1, -1, -1, -1),
-                    (1, ): (-1, -1, -1, -1, 0),
-                    (-1, ): (-1, 0, 1, 2, 3),
-                },
-            ],
-            "s,f": [
-                (
-                    "U({1:d}f,{1:d}f)",
-                    "F2({1:d}f,{1:d}f)",
-                    "F4({1:d}f,{1:d}f)",
-                    "F6({1:d}f,{1:d}f)",
-                    "U({0:d}s,{1:d}d)",
-                    "ζ({1:d}f)",
-                ),
-                {
-                    (0, 0): (-1, -1, -1, -1, -1),
-                    (0, 1): (-1, -1, -1, -1, 0),
-                    (0, -1): (-1, 0, 1, 2, 3),
-
-                    (-1, -1): (-1, 0, 1, 2, 3),
-                },
-            ],
-            "p,f": [
-                (
-                    "U({1:d}f,{1:d}f)",
-                    "F2({1:d}f,{1:d}f)",
-                    "F4({1:d}f,{1:d}f)",
-                    "F6({1:d}f,{1:d}f)",
-                    "U({0:d}p,{1:d}f)",
-                    "F2({0:d}p,{1:d}f)",
-                    "G2({0:d}p,{1:d}f)",
-                    "G4({0:d}p,{1:d}f)",
-                    "ζ({1:d}f)",
-                    "ζ({0:d}p)"
-                ),
-                {
-                    (0, 0): (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
-                    (0, 1): (-1, -1, -1, -1, -1, -1, -1, -1, 0, -1),
-                    (0, -1): (-1, 0, 1, 2, -1, -1, -1, -1, 3, -1),
-
-                    (1, 0): (-1, -1, -1, -1, -1, -1, -1, -1, -1, 0),
-                    (1, 1): (-1, -1, -1, -1, -1, 2, 3, -1, 1, 0),
-                    (1, -1): (-1, 0, 1, 2, -1, 5, 6, 7, 4, 3),
-
-                    (-1, -1): (-1, 1, 2, 3, -1, 6, 7, 8, 5, 4),
-                },
-            ],
-            "d,f": [
-                (
-                    "U({0:d}f,{0:d}f)",
-                    "F2({0:d}f,{0:d}f)",
-                    "F4({0:d}f,{0:d}f)",
-                    "F6({0:d}f,{0:d}f)",
-                    "U({0:d}d,{1:d}f)",
-                    "F2({0:d}d,{1:d}f)",
-                    "F4({0:d}d,{1:d}f)",
-                    "G1({0:d}d,{1:d}f)",
-                    "G3({0:d}d,{1:d}f)",
-                    "G5({0:d}d,{1:d}f)",
-                    "ζ({1:d}f)",
-                    "ζ({0:d}d)",
-                ),
-                {
-                    (0, 0): (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),
-                    (0, 1): (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1),
-                    (0, -1): (-1, 0, 1, 2, -1, -1, -1, -1, -1, -1, 3, -1),
-
-                    (1, 0): (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0),
-                    (1, 1): (-1, -1, -1, -1, -1, 2, 3, 4, 5, 6, 1, 0),
-                    (1, -1): (-1, 0, 1, 2, -1, 5, 6, 7, 8, 9, 4, 3),
-
-                    (-1, -1): (-1, 2, 3, 4, -1, 7, 8, 9, 10, 11, 6, 5),
-                },
-            ],
-        }
-
-        key = ",".join(self.shells)
-        names, indices = MAPPINGS[key]
-
-        key = list()
-        for occupancy, shell in zip(self.occupancies, self.shells):
-            max_occupancy = self.OCCUPANCIES[shell]
-            if occupancy in (0, max_occupancy):
-                key.append(0)
-            elif occupancy in (1, max_occupancy - 1):
-                if shell == "s":
-                    key.append(-1)
-                else:
-                    key.append(1)
-            else:
-                key.append(-1)
-        indices = indices[tuple(key)]
-        self._atomic_parameters = odict()
-        for name, index in zip(names, indices):
-            name = name.format(*self.levels)
-            value = values[index] if index != -1 else 0.0
-            self._atomic_parameters[name] = value
 
     def __hash__(self):
         return hash(self.name)
@@ -356,18 +163,6 @@ class Cowan(object):
         self.configuration = configuration
         self.basename = basename
         self.dirname = os.path.dirname(__file__)
-
-    @property
-    def initial_configuration(self):
-        if not self.configuration.is_excited:
-            return self.configuration
-        valence_subshell = self.configuration.subshells[1]
-        valence_occupancy = self.configuration.occupancies[1] - 1
-        if valence_occupancy < 0:
-            valence_occupancy = 0
-        subshells = (valence_subshell,)
-        occupancies = (valence_occupancy,)
-        return Configuration.from_subshells_and_occupancies(subshells, occupancies)
 
     @staticmethod
     def normalize_configuration_name(configuration):
@@ -445,22 +240,52 @@ class Cowan(object):
             except FileNotFoundError:
                 pass
 
-    def get_parameters(self, remove=True, debug=False):
-        # Run RCN to generate the needed files.
+    def get_parameters(self, remove=True, debug=False):  # noqa
         self.rcn()
+        self.rcn2()
+        self.rcg()
 
-        # Run RCN2 and RCG for debug purposes.
-        if debug:
-            self.rcn2()
-            self.rcg()
+        subshells = self.configuration.subshells
 
+        # Parse the output of the RCG program to get the names of the parameters.
+        tmp = list()
+        filename = "{:s}.rcg_out".format(self.basename)
+        with open(filename) as fp:
+            for line in fp:
+                if "PARAMETER VALUES IN" in line:
+                    # Skip two lines
+                    for _ in range(2):
+                        line = next(fp)
+                    while line.split():
+                        tokens = re.split(r"\s{2,}", line.strip())
+                        tmp.extend(tokens)
+                        line = next(fp)
+
+        # Process the names.
+        names = list()
+        for name in tmp:
+            if name.startswith("F") or name.startswith("G"):
+                start = name[:2]
+                idx1 = int(name[3]) - 1
+                idx2 = int(name[4]) - 1
+                subshell1 = subshells[idx1]
+                subshell2 = subshells[idx2]
+                name = "{}({},{})".format(start, subshell1, subshell2)
+            elif name.startswith("ZETA"):
+                idx = int(name.split()[-1]) - 1
+                subshell = subshells[idx]
+                name = "ζ({})".format(subshell)
+            else:
+                continue
+            names.append(name)
+
+        # Parse the output of the RCN program to get the values of the parameters.
+        values = list()
         filename = "{:s}.rcn_out".format(self.basename)
-        parameters = list()
         with open(filename) as fp:
             for line in fp:
                 if "ETOT=" in line:
                     energy = float(line.split()[-1]) * self.RYDBER_TO_EV
-                    parameters.append(energy)
                     line = next(fp)
 
                     # Skip a few empty lines.
@@ -469,20 +294,24 @@ class Cowan(object):
 
                     # Parse the atomic parameters.
                     tokens = map(float, line.split()[4::2])
-                    parameters.extend(tokens)
+                    values.extend(tokens)
 
                     # In some cases the parameters also span the next two lines.
                     for _ in range(2):
                         line = next(fp)
                         tokens = line.split()
                         if tokens:
-                            parameters.extend(map(float, tokens[::2]))
+                            values.extend(map(float, tokens[::2]))
+
+        parameters = odict()
+        for name, value in zip(names, values):
+            parameters[name] = value
 
         # Remove files generated during the calculations.
         if remove and not debug:
             self.remove_calculation_files()
 
-        return parameters
+        return energy, parameters
 
 
 def main():
@@ -498,18 +327,14 @@ def main():
     logging.basicConfig(format="%(message)s", level=args.loglevel.upper())
 
     element = Element(args.element)
-    configuration = Configuration(args.configuration)
+    conf = Configuration(args.configuration)
 
-    cowan = Cowan(element, configuration)
-    configuration.energy, *configuration.atomic_parameters = cowan.get_parameters(args.remove, args.debug)
-    logging.info(
-        "%2s %-8s E = %-.4f eV",
-        element.symbol,
-        configuration,
-        configuration.energy,
-    )
-    logging.debug("")
-    for parameter, value in configuration.atomic_parameters.items():
+    cowan = Cowan(element, conf)
+    conf.energy, conf.atomic_parameters = cowan.get_parameters(args.remove, args.debug)
+
+    logging.info("%2s %-8s", element.symbol, conf)
+    logging.info("E = %-.4f eV", conf.energy)
+    for parameter, value in conf.atomic_parameters.items():
         logging.debug("%-s = %-.4f eV", parameter, value)
     logging.debug("")
 
