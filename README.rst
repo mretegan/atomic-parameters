@@ -8,5 +8,5 @@ To use the script run the following commands:
     cd atomic-parameters
     python parameters.py --element "Fe" --configuration "1s1,3d5"
 
-Note that the programs ``rcn``, ``rcn2``, ``ttrcg`` must be installed and the ``$TTMULT_HOME`` environment variable must be set to the folder containing the programs.
+The script uses the ``rcn``, ``rcn2``, ``ttrcg`` programs from the local ``cowan`` folder. These are available for macOS and Linux operating systems. If you want to use your own binaries, set the ``$TTMULT`` environment variable to the folder containing them.
 

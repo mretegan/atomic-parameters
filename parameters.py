@@ -148,13 +148,13 @@ class Configuration(object):  # noqa
 class Cowan(object):
     """Calculate the parameters of an electronic configuration using Cowan's programs."""
 
-    RCN_INPUT = "22 -9    2   10  1.0    5.E-06    1.E-09-2   130   1.0  0.65 11.0 0.50 0.0  0.70\n"
-    RCN2_INPUT = """G5INP     000                 00        00000000  9999999999 .00       1229
+    RCN_HEADER = "22 -9    2   10  1.0    5.E-06    1.E-09-2   130   1.0  0.65  0.0 0.50 0.0  0.7\n"
+    RCN2_HEADER = """G5INP     000                 00        00000000  9999999999 .00       1229
         -1
     """
-    RCN = "scripts/runrcn.sh"
-    RCN2 = "scripts/runrcn2.sh"
-    RCG = "scripts/runrcg.sh"
+    RCN = "runrcn.sh"
+    RCN2 = "runrcn2.sh"
+    RCG = "runrcg.sh"
 
     RYDBER_TO_EV = 13.605693122994
 
@@ -162,7 +162,22 @@ class Cowan(object):
         self.element = element
         self.configuration = configuration
         self.basename = basename
-        self.dirname = os.path.dirname(__file__)
+
+        if "TTMULT" not in os.environ:
+            logging.debug("The $TTMULT environment variable is not set; will use internal binaries.")
+            os.environ["TTMULT"] = self.bin
+
+    @property
+    def root(self):
+        return os.path.join(os.path.dirname(__file__), "cowan")
+
+    @property
+    def bin(self):
+        return os.path.join(self.root, "bin", sys.platform)
+
+    @property
+    def scripts(self):
+        return os.path.join(self.root, "scripts")
 
     @staticmethod
     def normalize_configuration_name(configuration):
@@ -172,11 +187,11 @@ class Cowan(object):
 
         name = str()
         for subshell, occupancy in zip(subshells, occupancies):
-            # For 5d elements, the 4f subshell must be included explicitly.
-            if "5d" in subshell and "4f" not in subshells:
-                subshell = "4f14 5d"
-            elif "4f" in subshell and "3d" not in configuration.name:
+            # For some elements, some of the occupied subshells must be included explicitly.
+            if "4f" in subshell and "3d" not in configuration.name:
                 subshell = "3d10 4f"
+            elif "5d" in subshell and "4f" not in subshells:
+                subshell = "4f14 5d"
             name += "{0:s}{1:02d} ".format(subshell.upper(), occupancy)
         return name.rstrip()
 
@@ -195,7 +210,7 @@ class Cowan(object):
 
     def rcn(self):
         """Create the input and run the RCN program."""
-        rcn_input = self.RCN_INPUT
+        rcn_input = self.RCN_HEADER
         for configuration in (self.configuration,):
             line = "{:5d}           {:8s}         {:8s}\n".format(
                 self.element.atomic_number,
@@ -208,28 +223,26 @@ class Cowan(object):
         filename = "{:s}.rcn".format(self.basename)
         with open(filename, "w") as fp:
             fp.write(rcn_input)
-
-        self.run(os.path.join(self.dirname, self.RCN))
+        self.run(os.path.join(self.scripts, self.RCN))
 
     def rcn2(self):
         """Create the input and run the RCN2 program."""
         filename = "{:s}.rcn2".format(self.basename)
         with open(filename, "w") as fp:
-            fp.write(self.RCN2_INPUT)
-
-        self.run(os.path.join(self.dirname, self.RCN2))
+            fp.write(self.RCN2_HEADER)
+        self.run(os.path.join(self.scripts, self.RCN2))
 
     def rcg(self):
         """Create the input and run the RCG program."""
         filename = "{:s}.rcg".format(self.basename)
         # The input file has ".orig" appended to the end.
-        os.rename(filename + ".orig", filename)
+        # os.rename(filename + ".orig", filename)
         with open(filename, "r") as fp:
             lines = fp.readlines()
         with open(filename, "w") as fp:
             for line in lines:
                 fp.write(re.sub(r"80998080", r"99999999", line))
-        self.run(os.path.join(self.dirname, self.RCG))
+        self.run(os.path.join(self.scripts, self.RCG))
 
     def remove_calculation_files(self):
         filenames = sorted(glob.glob(self.basename + "*"))
@@ -307,8 +320,8 @@ class Cowan(object):
         for name, value in zip(names, values):
             parameters[name] = value
 
-        # Remove files generated during the calculations.
-        if not debug:
+        # Don't remove files if the logging level is set to debug.
+        if logging.root.level != logging.DEBUG:
             self.remove_calculation_files()
 
         return energy, parameters
@@ -318,24 +331,26 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--element", default="Fe")
     parser.add_argument("-c", "--configuration", default="3d5")
-    parser.add_argument("-l", "--loglevel", default="debug")
-    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-l", "--loglevel", default="info")
 
     args = parser.parse_args()
 
-    logging.basicConfig(format="%(message)s", level=args.loglevel.upper())
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=args.loglevel.upper())
+
+    if sys.platform == "win32":
+        logging.critical("The script works only on Linux and macOS.")
+        sys.exit()
 
     element = Element(args.element)
     conf = Configuration(args.configuration)
 
     cowan = Cowan(element, conf)
-    conf.energy, conf.atomic_parameters = cowan.get_parameters(args.debug)
+    conf.energy, conf.atomic_parameters = cowan.get_parameters()
 
     logging.info("%2s %-8s", element.symbol, conf)
     logging.info("E = %-.4f eV", conf.energy)
     for parameter, value in conf.atomic_parameters.items():
-        logging.debug("%-s = %-.4f eV", parameter, value)
-    logging.debug("")
+        logging.info("%-s = %-.4f eV", parameter, value)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 # Script that runs the rcn2 program from the TTMult suite.
 
-if [ ! -x "$TTMULT_HOME/rcn2" ]; then
+if [ ! -x "$TTMULT/rcn2" ]; then
     echo "rcn2 command was not found."
     exit 1
 fi
@@ -16,13 +16,13 @@ fi
 # The input file for rcn2 must be added in the current folder.
 if [ -f "$NAME.rcn2" ]; then
     ln -sf $NAME.rcn2 fort.10
-    rcn2
+    $TTMULT/rcn2
     if [ $? -ne 0 ]; then
         echo "rcn2 calculation has failed."
         exit 1
     fi
     mv fort.9 $NAME.rcn2_out
-    mv fort.11 $NAME.rcg.orig
+    mv fort.11 $NAME.rcg
     rm fort.10
     echo "rcn2 calculation has finished successfully."
 else

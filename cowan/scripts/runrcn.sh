@@ -3,7 +3,7 @@
 # Script that runs the rcn program from the TTMult suite.
 # Note that the input file $NAME.rcn has to be created.
 
-if [ ! -x "$TTMULT_HOME/rcn" ]; then
+if [ ! -x "$TTMULT/rcn" ]; then
     echo "rcn command was not found."
     exit 1
 fi
@@ -17,7 +17,7 @@ fi
 if [ -f "$NAME.rcn" ]; then
     ln -sf $NAME.rcn fort.10
     # Note that rcn is an alias to rcn31.
-    rcn
+    $TTMULT/rcn
     if [ $? -ne 0 ]; then
         echo "rcn calculation has failed."
         exit 1
