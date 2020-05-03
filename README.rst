@@ -9,5 +9,5 @@ To use the script run the following commands:
     pip3 install --user -r requirements.txt
     python3 parameters.py --element "Fe" --configuration "1s1,3d5"
 
-The script uses the ``rcn``, ``rcn2``, ``ttrcg`` programs from the local ``cowan`` folder. These are available for macOS and Linux operating systems. If you want to use your own binaries, set the ``$TTMULT`` environment variable to the folder containing them.
+The script uses the ``rcn``, ``rcn2``, ``ttrcg`` programs from the local ``cowan`` folder. These are available for macOS and Linux operating systems. See the README.rst for more details. If you want to use your own binaries, set the ``$TTMULT`` environment variable to the folder containing them.
 
