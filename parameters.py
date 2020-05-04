@@ -1,5 +1,5 @@
+#!/usr/bin/env python3
 # coding: utf-8
-# !/usr/bin/env python
 
 import re
 import os
@@ -116,11 +116,13 @@ class Configuration(object):  # noqa
             self.shells = [core_shell, valence_shell]
             self.occupancies = [core_occupancy, valence_occupancy]
         else:
-            self.levels = [valence_level, ]
-            self.shells = [valence_shell, ]
-            self.occupancies = [valence_occupancy, ]
+            self.levels = [valence_level]
+            self.shells = [valence_shell]
+            self.occupancies = [valence_occupancy]
 
-        self.subshells = [str(level) + shell for level, shell in zip(self.levels, self.shells)]
+        self.subshells = [
+            str(level) + shell for level, shell in zip(self.levels, self.shells)
+        ]
 
         self._name = value
 
@@ -164,7 +166,9 @@ class Cowan(object):
         self.basename = basename
 
         if "TTMULT" not in os.environ:
-            logging.debug("The $TTMULT environment variable is not set; will use internal binaries.")
+            logging.debug(
+                "The $TTMULT environment variable is not set; will use internal binaries."
+            )
             os.environ["TTMULT"] = self.bin
 
     @property
@@ -202,7 +206,7 @@ class Cowan(object):
                 (command, self.basename),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                check=True
+                check=True,
             )
         except subprocess.CalledProcessError:
             logging.critical("The command %s did not finish successfully.", command)
@@ -335,7 +339,9 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=args.loglevel.upper())
+    logging.basicConfig(
+        format="%(levelname)s: %(message)s", level=args.loglevel.upper()
+    )
 
     if sys.platform == "win32":
         logging.critical("The script works only on Linux and macOS.")

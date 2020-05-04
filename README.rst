@@ -15,5 +15,5 @@ To run the tests go to the parent folder and run:
 
     python3 -m atomic-parameters.tests.test_parameters
 
-The script uses the ``rcn``, ``rcn2``, ``ttrcg`` programs from the local ``cowan`` folder. These are available for macOS and Linux operating systems. See the README.rst for more details. If you want to use your own binaries, set the ``$TTMULT`` environment variable to the folder containing them.
+The script uses the ``rcn``, ``rcn2``, ``ttrcg`` programs from the local ``cowan`` folder. These are available for macOS and Linux operating systems. See the ``README.rst`` for more details. If you want to use your own binaries, set the ``$TTMULT`` environment variable to the folder containing them.
 
