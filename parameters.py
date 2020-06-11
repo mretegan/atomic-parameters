@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
+"""The script calculates the atomic parameters of electronic configurations using Cowan's codes."""
 
 import re
 import os
@@ -22,7 +23,7 @@ class odict(collections.OrderedDict):
         return value
 
 
-class Element(object):
+class Element:
     SUBSHELLS = {
         "3d": {"atomic_numbers_range": (21, 30 + 1), "core_electrons": 18},
         "4d": {"atomic_numbers_range": (39, 48 + 1), "core_electrons": 36},
@@ -70,7 +71,7 @@ class Element(object):
         return "{:s}{:s}".format(self.symbol, self.charge)
 
 
-class Configuration(object):  # noqa
+class Configuration:
     OCCUPANCIES = {"s": 2, "p": 6, "d": 10, "f": 14}
 
     def __init__(self, name):
@@ -126,6 +127,29 @@ class Configuration(object):  # noqa
 
         self._name = value
 
+    @property
+    def has_core(self):
+        return len(self.subshells) == 2
+
+    @staticmethod
+    def count_particles(shell, occupancy):
+        key = "{}{}".format(shell, occupancy)
+        if key in ("s0", "s2", "p0", "p6", "d0", "d10", "f0", "f14"):
+            particles = "zero"
+        elif key in ("s1", "p1", "p5", "d1", "d9", "f1", "f13"):
+            particles = "one"
+        else:
+            particles = "multiple"
+        return particles
+
+    @property
+    def core_particles_count(self):
+        if not self.has_core:
+            return "na"
+        core_shell, _ = self.shells
+        core_occupancy, _ = self.occupancies
+        return self.count_particles(core_shell, core_occupancy)
+
     @classmethod
     def from_subshells_and_occupancies(cls, subshells, occupancies):
         name = ",".join(
@@ -147,11 +171,11 @@ class Configuration(object):  # noqa
         return self.name
 
 
-class Cowan(object):
+class Cowan:
     """Calculate the parameters of an electronic configuration using Cowan's programs."""
 
     RCN_HEADER = "22 -9    2   10  1.0    5.E-06    1.E-09-2   130   1.0  0.65  0.0 0.50 0.0  0.7\n"
-    RCN2_HEADER = """G5INP     000                 00        00000000  9999999999 .00       1229
+    RCN2_HEADER = """G5INP     000 0.0000          00                 09999999999 0.00     07229
         -1
     """
     RCN = "runrcn.sh"
@@ -159,6 +183,35 @@ class Cowan(object):
     RCG = "runrcg.sh"
 
     RYDBER_TO_EV = 13.605693122994
+
+    NAMES = {
+        "dfo": (
+            "F2({1:d}f,{1:d}f)",
+            "F4({1:d}f,{1:d}f)",
+            "F6({1:d}f,{1:d}f)",
+            "ζ({0:d}d)",
+            "ζ({1:d}f)",
+            "F2({0:d}d,{1:d}f)",
+            "F4({0:d}d,{1:d}f)",
+            "G1({0:d}d,{1:d}f)",
+            "G3({0:d}d,{1:d}f)",
+            "G5({0:d}d,{1:d}f)",
+        ),
+        "dfm": (
+            "F2({0:d}d,{0:d}d)",
+            "F4({0:d}d,{0:d}d)",
+            "F2({1:d}f,{1:d}f)",
+            "F4({1:d}f,{1:d}f)",
+            "F6({1:d}f,{1:d}f)",
+            "ζ({0:d}d)",
+            "ζ({1:d}f)",
+            "F2({0:d}d,{1:d}f)",
+            "F4({0:d}d,{1:d}f)",
+            "G1({0:d}d,{1:d}f)",
+            "G3({0:d}d,{1:d}f)",
+            "G5({0:d}d,{1:d}f)",
+        ),
+    }
 
     def __init__(self, element, configuration, basename="input"):
         self.element = element
@@ -191,10 +244,8 @@ class Cowan(object):
 
         name = str()
         for subshell, occupancy in zip(subshells, occupancies):
-            # For some elements, some of the occupied subshells must be included explicitly.
-            if "4f" in subshell and "3d" not in configuration.name:
-                subshell = "3d10 4f"
-            elif "5d" in subshell and "4f" not in subshells:
+            # For 5d elements, the 4f occupied subshells must be included explicitly.
+            if "5d" in subshell and "4f" not in subshells:
                 subshell = "4f14 5d"
             name += "{0:s}{1:02d} ".format(subshell.upper(), occupancy)
         return name.rstrip()
@@ -212,7 +263,7 @@ class Cowan(object):
             logging.critical("The command %s did not finish successfully.", command)
             sys.exit()
 
-    def rcn(self):
+    def run_rcn(self):
         """Create the input and run the RCN program."""
         rcn_input = self.RCN_HEADER
         for configuration in (self.configuration,):
@@ -229,14 +280,14 @@ class Cowan(object):
             fp.write(rcn_input)
         self.run(os.path.join(self.scripts, self.RCN))
 
-    def rcn2(self):
+    def run_rcn2(self):
         """Create the input and run the RCN2 program."""
         filename = "{:s}.rcn2".format(self.basename)
         with open(filename, "w") as fp:
             fp.write(self.RCN2_HEADER)
         self.run(os.path.join(self.scripts, self.RCN2))
 
-    def rcg(self):
+    def run_rcg(self):
         """Create the input and run the RCG program."""
         filename = "{:s}.rcg".format(self.basename)
         # The input file has ".orig" appended to the end.
@@ -257,15 +308,35 @@ class Cowan(object):
             except FileNotFoundError:
                 pass
 
-    def get_parameters(self, debug=False):  # noqa
-        self.rcn()
-        self.rcn2()
-        self.rcg()
-
+    def convert_prameters_names(self, names):
+        count = self.configuration.core_particles_count
         subshells = self.configuration.subshells
 
-        # Parse the output of the RCG program to get the names of the parameters.
         tmp = list()
+        for name in names:
+            if name.startswith("F") or name.startswith("G"):
+                start = name[:2]
+                idx1, idx2 = map(int, name[3:5])
+                if count in ("na", "one", "multiple"):
+                    idx1, idx2 = idx1 - 1, idx2 - 1
+                subshell1 = subshells[idx1]
+                subshell2 = subshells[idx2]
+                name = "{}({},{})".format(start, subshell1, subshell2)
+            elif name.startswith("ZETA"):
+                idx = int(name.split()[-1])
+                if count in ("na", "one", "multiple"):
+                    idx = idx - 1
+                subshell = subshells[idx]
+                name = "ζ({})".format(subshell)
+            else:
+                continue
+            tmp.append(name)
+
+        return tmp
+
+    def parse_rcg_output(self):
+        """Parse the output of the RCG program to get the names of the parameters."""
+        names = list()
         filename = "{:s}.rcg_out".format(self.basename)
         with open(filename) as fp:
             for line in fp:
@@ -275,28 +346,34 @@ class Cowan(object):
                         line = next(fp)
                     while line.split():
                         tokens = re.split(r"\s{2,}", line.strip())
-                        tmp.extend(tokens)
+                        names.extend(tokens)
                         line = next(fp)
 
-        # Process the names.
-        names = list()
-        for name in tmp:
-            if name.startswith("F") or name.startswith("G"):
-                start = name[:2]
-                idx1 = int(name[3]) - 1
-                idx2 = int(name[4]) - 1
-                subshell1 = subshells[idx1]
-                subshell2 = subshells[idx2]
-                name = "{}({},{})".format(start, subshell1, subshell2)
-            elif name.startswith("ZETA"):
-                idx = int(name.split()[-1]) - 1
-                subshell = subshells[idx]
-                name = "ζ({})".format(subshell)
-            else:
-                continue
-            names.append(name)
+        if names:
+            logging.debug("Cowan parameters names: %s", (names))
+            names = self.convert_prameters_names(names)
+            logging.debug("Converted parameters names: %s", (names))
+        else:
+            logging.debug(
+                "Failed to extract parameters names from the RCG output. "
+                "Will use internally stored parameters names instead."
+            )
 
-        # Parse the output of the RCN program to get the values of the parameters.
+            count = self.configuration.core_particles_count
+            if count == "one":
+                idx = "o"
+            elif count == "multiple":
+                idx = "m"
+
+            core_shell, valence_shell = self.configuration.shells
+            key = "{0:s}{1:s}{2:s}".format(core_shell, valence_shell, idx)
+            levels = self.configuration.levels
+            names = [name.format(*levels) for name in self.NAMES[key]]
+
+        return names
+
+    def parse_rcn_output(self):
+        """Parse the output of the RCN program to get the values of the parameters."""
         values = list()
         filename = "{:s}.rcn_out".format(self.basename)
         with open(filename) as fp:
@@ -319,6 +396,19 @@ class Cowan(object):
                         tokens = line.split()
                         if tokens:
                             values.extend(map(float, tokens[::2]))
+        return values, energy
+
+    def get_parameters(self):
+        self.run_rcn()
+        self.run_rcn2()
+        self.run_rcg()
+
+        values, energy = self.parse_rcn_output()
+        names = self.parse_rcg_output()
+
+        if len(names) != len(values):
+            logging.critical("The parameters cannot be extracted. Please report this.")
+            sys.exit()
 
         parameters = odict()
         for name, value in zip(names, values):
