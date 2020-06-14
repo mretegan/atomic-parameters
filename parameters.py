@@ -133,6 +133,8 @@ class Configuration:
 
     @staticmethod
     def count_particles(shell, occupancy):
+        """Count the number of particles (electrons) or quasiparticles
+        (holes) in a shell."""
         key = "{}{}".format(shell, occupancy)
         if key in ("s0", "s2", "p0", "p6", "d0", "d10", "f0", "f14"):
             particles = "zero"
@@ -143,9 +145,11 @@ class Configuration:
         return particles
 
     @property
-    def core_particles_count(self):
+    def number_of_core_particles(self):
+        """Count the number of core particles. Returns None if the electronic
+        configuration has no core."""
         if not self.has_core:
-            return "na"
+            return None
         core_shell, _ = self.shells
         core_occupancy, _ = self.occupancies
         return self.count_particles(core_shell, core_occupancy)
@@ -185,7 +189,7 @@ class Cowan:
     RYDBER_TO_EV = 13.605693122994
 
     NAMES = {
-        "dfo": (
+        "d_and_f_with_one_particle": (
             "F2({1:d}f,{1:d}f)",
             "F4({1:d}f,{1:d}f)",
             "F6({1:d}f,{1:d}f)",
@@ -197,7 +201,8 @@ class Cowan:
             "G3({0:d}d,{1:d}f)",
             "G5({0:d}d,{1:d}f)",
         ),
-        "dfm": (
+        # Compared to the case above, here we also have the d-d interaction.
+        "d_and_f_with_multiple_particles": (
             "F2({0:d}d,{0:d}d)",
             "F4({0:d}d,{0:d}d)",
             "F2({1:d}f,{1:d}f)",
@@ -309,7 +314,7 @@ class Cowan:
                 pass
 
     def convert_prameters_names(self, names):
-        count = self.configuration.core_particles_count
+        count = self.configuration.number_of_core_particles
         subshells = self.configuration.subshells
 
         tmp = list()
@@ -317,14 +322,14 @@ class Cowan:
             if name.startswith("F") or name.startswith("G"):
                 start = name[:2]
                 idx1, idx2 = map(int, name[3:5])
-                if count in ("na", "one", "multiple"):
+                if count in (None, "one", "multiple"):
                     idx1, idx2 = idx1 - 1, idx2 - 1
                 subshell1 = subshells[idx1]
                 subshell2 = subshells[idx2]
                 name = "{}({},{})".format(start, subshell1, subshell2)
             elif name.startswith("ZETA"):
                 idx = int(name.split()[-1])
-                if count in ("na", "one", "multiple"):
+                if count in (None, "one", "multiple"):
                     idx = idx - 1
                 subshell = subshells[idx]
                 name = "ζ({})".format(subshell)
@@ -355,18 +360,18 @@ class Cowan:
             logging.debug("Converted parameters names: %s", (names))
         else:
             logging.debug(
-                "Failed to extract parameters names from the RCG output. "
-                "Will use internally stored parameters names instead."
+                "Failed to extract parameters names from the RCG output; "
+                "will use internally stored parameters names instead."
             )
 
-            count = self.configuration.core_particles_count
+            count = self.configuration.number_of_core_particles
             if count == "one":
-                idx = "o"
+                key = "with_one_particle"
             elif count == "multiple":
-                idx = "m"
+                key = "with_multiple_particles"
 
             core_shell, valence_shell = self.configuration.shells
-            key = "{0:s}{1:s}{2:s}".format(core_shell, valence_shell, idx)
+            key = "{0:s}_and_{1:s}_{2:s}".format(core_shell, valence_shell, key)
             levels = self.configuration.levels
             names = [name.format(*levels) for name in self.NAMES[key]]
 
@@ -396,14 +401,14 @@ class Cowan:
                         tokens = line.split()
                         if tokens:
                             values.extend(map(float, tokens[::2]))
-        return values, energy
+        return energy, values
 
     def get_parameters(self):
         self.run_rcn()
         self.run_rcn2()
         self.run_rcg()
 
-        values, energy = self.parse_rcn_output()
+        energy, values = self.parse_rcn_output()
         names = self.parse_rcg_output()
 
         if len(names) != len(values):
