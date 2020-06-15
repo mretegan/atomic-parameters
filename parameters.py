@@ -189,6 +189,34 @@ class Cowan:
     RYDBER_TO_EV = 13.605693122994
 
     NAMES = {
+        "s_with_one_particle_and_f": (
+            "F2({1:d}f,{1:d}f)",
+            "F4({1:d}f,{1:d}f)",
+            "F6({1:d}f,{1:d}f)",
+            "ζ({1:d}f)",
+            "G3({0:d}s,{1:d}f)",
+        ),
+        "p_with_one_particle_and_f": (
+            "F2({1:d}f,{1:d}f)",
+            "F4({1:d}f,{1:d}f)",
+            "F6({1:d}f,{1:d}f)",
+            "ζ({0:d}p)",
+            "ζ({1:d}f)",
+            "F2({0:d}p,{1:d}f)",
+            "G2({0:d}p,{1:d}f)",
+            "G4({0:d}p,{1:d}f)",
+        ),
+        "p_with_multiple_particles_and_f": (
+            "F2({0:d}p,{0:d}p)",
+            "F2({1:d}f,{1:d}f)",
+            "F4({1:d}f,{1:d}f)",
+            "F6({1:d}f,{1:d}f)",
+            "ζ({0:d}p)",
+            "ζ({1:d}f)",
+            "F2({0:d}p,{1:d}f)",
+            "G2({0:d}p,{1:d}f)",
+            "G4({0:d}p,{1:d}f)",
+        ),
         "d_with_one_particle_and_f": (
             "F2({1:d}f,{1:d}f)",
             "F4({1:d}f,{1:d}f)",
