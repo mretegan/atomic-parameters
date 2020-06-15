@@ -189,7 +189,7 @@ class Cowan:
     RYDBER_TO_EV = 13.605693122994
 
     NAMES = {
-        "d_and_f_with_one_particle": (
+        "d_with_one_particle_and_f": (
             "F2({1:d}f,{1:d}f)",
             "F4({1:d}f,{1:d}f)",
             "F6({1:d}f,{1:d}f)",
@@ -202,7 +202,7 @@ class Cowan:
             "G5({0:d}d,{1:d}f)",
         ),
         # Compared to the case above, here we also have the d-d interaction.
-        "d_and_f_with_multiple_particles": (
+        "d_with_multiple_particles_and_f": (
             "F2({0:d}d,{0:d}d)",
             "F4({0:d}d,{0:d}d)",
             "F2({1:d}f,{1:d}f)",
@@ -371,7 +371,7 @@ class Cowan:
                 key = "with_multiple_particles"
 
             core_shell, valence_shell = self.configuration.shells
-            key = "{0:s}_and_{1:s}_{2:s}".format(core_shell, valence_shell, key)
+            key = "{0:s}_{1:s}_and_{2:s}".format(core_shell, key, valence_shell)
             levels = self.configuration.levels
             names = [name.format(*levels) for name in self.NAMES[key]]
 
